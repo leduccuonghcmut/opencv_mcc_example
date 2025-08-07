@@ -73,15 +73,15 @@ CMakeFiles/color_calibration_test.dir/src/main.cpp.o: CMakeFiles/color_calibrati
 CMakeFiles/color_calibration_test.dir/src/main.cpp.o: /home/cuongleduc/opencv_mcc_example/src/main.cpp
 CMakeFiles/color_calibration_test.dir/src/main.cpp.o: CMakeFiles/color_calibration_test.dir/compiler_depend.ts
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/cuongleduc/opencv_mcc_example/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object CMakeFiles/color_calibration_test.dir/src/main.cpp.o"
-	/home/cuongleduc/buildroot-rv1106/output/build/rv1106-ipc-sdk-e1caff31f64cbb1e7dbed793b764bbf1c020d6c7/tools/linux/toolchain/arm-rockchip830-linux-uclibcgnueabihf/bin/arm-rockchip830-linux-uclibcgnueabihf-g++ --sysroot=/home/cuongleduc/buildroot-rv1106/output/host/arm-buildroot-linux-uclibcgnueabihf/sysroot $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/color_calibration_test.dir/src/main.cpp.o -MF CMakeFiles/color_calibration_test.dir/src/main.cpp.o.d -o CMakeFiles/color_calibration_test.dir/src/main.cpp.o -c /home/cuongleduc/opencv_mcc_example/src/main.cpp
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/color_calibration_test.dir/src/main.cpp.o -MF CMakeFiles/color_calibration_test.dir/src/main.cpp.o.d -o CMakeFiles/color_calibration_test.dir/src/main.cpp.o -c /home/cuongleduc/opencv_mcc_example/src/main.cpp
 
 CMakeFiles/color_calibration_test.dir/src/main.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/color_calibration_test.dir/src/main.cpp.i"
-	/home/cuongleduc/buildroot-rv1106/output/build/rv1106-ipc-sdk-e1caff31f64cbb1e7dbed793b764bbf1c020d6c7/tools/linux/toolchain/arm-rockchip830-linux-uclibcgnueabihf/bin/arm-rockchip830-linux-uclibcgnueabihf-g++ --sysroot=/home/cuongleduc/buildroot-rv1106/output/host/arm-buildroot-linux-uclibcgnueabihf/sysroot $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/cuongleduc/opencv_mcc_example/src/main.cpp > CMakeFiles/color_calibration_test.dir/src/main.cpp.i
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/cuongleduc/opencv_mcc_example/src/main.cpp > CMakeFiles/color_calibration_test.dir/src/main.cpp.i
 
 CMakeFiles/color_calibration_test.dir/src/main.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/color_calibration_test.dir/src/main.cpp.s"
-	/home/cuongleduc/buildroot-rv1106/output/build/rv1106-ipc-sdk-e1caff31f64cbb1e7dbed793b764bbf1c020d6c7/tools/linux/toolchain/arm-rockchip830-linux-uclibcgnueabihf/bin/arm-rockchip830-linux-uclibcgnueabihf-g++ --sysroot=/home/cuongleduc/buildroot-rv1106/output/host/arm-buildroot-linux-uclibcgnueabihf/sysroot $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/cuongleduc/opencv_mcc_example/src/main.cpp -o CMakeFiles/color_calibration_test.dir/src/main.cpp.s
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/cuongleduc/opencv_mcc_example/src/main.cpp -o CMakeFiles/color_calibration_test.dir/src/main.cpp.s
 
 # Object files for target color_calibration_test
 color_calibration_test_OBJECTS = \
@@ -92,16 +92,11 @@ color_calibration_test_EXTERNAL_OBJECTS =
 
 color_calibration_test: CMakeFiles/color_calibration_test.dir/src/main.cpp.o
 color_calibration_test: CMakeFiles/color_calibration_test.dir/build.make
-color_calibration_test: /home/cuongleduc/buildroot-rv1106/output/host/arm-buildroot-linux-uclibcgnueabihf/sysroot/usr/lib/libopencv_mcc.so.4.9.0
-color_calibration_test: /home/cuongleduc/buildroot-rv1106/output/host/arm-buildroot-linux-uclibcgnueabihf/sysroot/usr/lib/libopencv_highgui.so.4.9.0
-color_calibration_test: /home/cuongleduc/buildroot-rv1106/output/host/arm-buildroot-linux-uclibcgnueabihf/sysroot/usr/lib/libopencv_dnn.so.4.9.0
-color_calibration_test: /home/cuongleduc/buildroot-rv1106/output/host/arm-buildroot-linux-uclibcgnueabihf/sysroot/usr/lib/libopencv_calib3d.so.4.9.0
-color_calibration_test: /home/cuongleduc/buildroot-rv1106/output/host/arm-buildroot-linux-uclibcgnueabihf/sysroot/usr/lib/libopencv_features2d.so.4.9.0
-color_calibration_test: /home/cuongleduc/buildroot-rv1106/output/host/arm-buildroot-linux-uclibcgnueabihf/sysroot/usr/lib/libopencv_flann.so.4.9.0
-color_calibration_test: /home/cuongleduc/buildroot-rv1106/output/host/arm-buildroot-linux-uclibcgnueabihf/sysroot/usr/lib/libopencv_videoio.so.4.9.0
-color_calibration_test: /home/cuongleduc/buildroot-rv1106/output/host/arm-buildroot-linux-uclibcgnueabihf/sysroot/usr/lib/libopencv_imgcodecs.so.4.9.0
-color_calibration_test: /home/cuongleduc/buildroot-rv1106/output/host/arm-buildroot-linux-uclibcgnueabihf/sysroot/usr/lib/libopencv_imgproc.so.4.9.0
-color_calibration_test: /home/cuongleduc/buildroot-rv1106/output/host/arm-buildroot-linux-uclibcgnueabihf/sysroot/usr/lib/libopencv_core.so.4.9.0
+color_calibration_test: /usr/lib/x86_64-linux-gnu/libopencv_highgui.so.4.6.0
+color_calibration_test: /usr/lib/x86_64-linux-gnu/libopencv_videoio.so.4.6.0
+color_calibration_test: /usr/lib/x86_64-linux-gnu/libopencv_imgcodecs.so.4.6.0
+color_calibration_test: /usr/lib/x86_64-linux-gnu/libopencv_imgproc.so.4.6.0
+color_calibration_test: /usr/lib/x86_64-linux-gnu/libopencv_core.so.4.6.0
 color_calibration_test: CMakeFiles/color_calibration_test.dir/link.txt
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/cuongleduc/opencv_mcc_example/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Linking CXX executable color_calibration_test"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/color_calibration_test.dir/link.txt --verbose=$(VERBOSE)

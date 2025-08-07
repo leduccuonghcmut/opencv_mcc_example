@@ -1,160 +1,244 @@
-//! [tutorial]
-#include <opencv2/core.hpp>
+#include <iostream>
+#include <string>
+#include <vector>
 
+#include <opencv2/core.hpp> 
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgcodecs.hpp>
-#include <opencv2/mcc.hpp>
-#include <iostream>
+#include <opencv2/videoio.hpp>
+#include <opencv2/imgproc.hpp>
 
-using namespace std;
-using namespace cv;
-using namespace mcc;
-using namespace ccm;
-using namespace std;
+// Manual CCM implementation
+class ManualCCM {
+private:
+    cv::Mat colorMatrix; // 3x3 color correction matrix
+    
+    // Auto white balance function with ROI
+    cv::Mat autoWhiteBalance(const cv::Mat& image, double roiRatio = 0.5) {
+        if (image.empty()) {
+            return cv::Mat();
+        }
+        
+        // Calculate ROI dimensions (center portion of the image)
+        int roiWidth = static_cast<int>(image.cols * roiRatio);
+        int roiHeight = static_cast<int>(image.rows * roiRatio);
+        int roiX = (image.cols - roiWidth) / 2;
+        int roiY = (image.rows - roiHeight) / 2;
+        
+        // Extract ROI
+        cv::Rect roi(roiX, roiY, roiWidth, roiHeight);
+        cv::Mat roiImage = image(roi);
+        
+        // Calculate mean values for each channel in ROI
+        cv::Scalar meanValues = cv::mean(roiImage);
+        
+        // Calculate the maximum mean value (target for white balance)
+        double maxMean = std::max({meanValues[0], meanValues[1], meanValues[2]});
+        
+        // Calculate scaling factors to make all channels equal to the maximum
+        double scaleR = maxMean / (meanValues[0] > 0 ? meanValues[0] : 1.0);
+        double scaleG = maxMean / (meanValues[1] > 0 ? meanValues[1] : 1.0);
+        double scaleB = maxMean / (meanValues[2] > 0 ? meanValues[2] : 1.0);
+        
+        // Apply white balance to the entire image
+        cv::Mat balancedImage = image.clone();
+        std::vector<cv::Mat> channels(3);
+        cv::split(balancedImage, channels);
+        
+        // Scale each channel
+        channels[0] *= scaleR; // Red channel
+        channels[1] *= scaleG; // Green channel
+        channels[2] *= scaleB; // Blue channel
+        
+        // Merge channels back
+        cv::merge(channels, balancedImage);
+        
+        // Clamp values to valid range [0, 255]
+        cv::threshold(balancedImage, balancedImage, 255, 255, cv::THRESH_TRUNC);
+        
+        std::cout << "White balance factors - R:" << scaleR << " G:" << scaleG << " B:" << scaleB << std::endl;
+        
+        return balancedImage;
+    }
+    
+public:
+    ManualCCM() {
+        // Initialize with identity matrix (no correction)
+        colorMatrix = cv::Mat::eye(3, 3, CV_32F);
+        
+        // Example: Simple color correction matrix
+        // This matrix can be adjusted for different color corrections
+        // R' = 1.2*R + 0.1*G + 0.0*B
+        // G' = 0.0*R + 1.1*G + 0.0*B  
+        // B' = 0.0*R + 0.0*G + 0.9*B
+        colorMatrix.at<float>(0,0) = 1.3f; // Red channel gain
+        colorMatrix.at<float>(0,1) = -0.141f;
+        colorMatrix.at<float>(0,2) = -0.168f;
+        colorMatrix.at<float>(1,0) = -0.191f;
+        colorMatrix.at<float>(1,1) = 1.2f; // Green channel gain
+        colorMatrix.at<float>(1,2) = -0.118f;
+        colorMatrix.at<float>(2,0) = -0.181f;
+        colorMatrix.at<float>(2,1) = -0.183f;
+        colorMatrix.at<float>(2,2) = 1.25f; // Blue channel gain
+        
+        std::cout << "Color correction matrix:" << std::endl << colorMatrix << std::endl;
+    }
+    
+    // Set custom color correction matrix
+    void setColorMatrix(const cv::Mat& matrix) {
+        if (matrix.rows == 3 && matrix.cols == 3 && matrix.type() == CV_32F) {
+            colorMatrix = matrix.clone();
+            std::cout << "Updated color correction matrix:" << std::endl << colorMatrix << std::endl;
+        } else {
+            std::cout << "Error: Matrix must be 3x3 float type" << std::endl;
+        }
+    }
+    
+    // Main color correction function
+    cv::Mat correctColors(const cv::Mat& image) {
+        if (image.empty()) {
+            return cv::Mat();
+        }
+        
+        // Apply auto white balance first (ROI = 0.5)
+        cv::Mat whiteBalancedImage = autoWhiteBalance(image, 0.5);
+        
+        // Convert BGR to RGB first
+        cv::Mat rgbImage;
+        cv::cvtColor(whiteBalancedImage, rgbImage, cv::COLOR_BGR2RGB);
+        
+        // Convert to float for precise calculations
+        cv::Mat floatImage;
+        rgbImage.convertTo(floatImage, CV_32F);
+        
+        // Create output image
+        cv::Mat correctedImage = cv::Mat::zeros(image.size(), CV_32FC3);
+        
+        // Apply color correction matrix to each pixel
+        for (int y = 0; y < floatImage.rows; y++) {
+            for (int x = 0; x < floatImage.cols; x++) {
+                cv::Vec3f pixel = floatImage.at<cv::Vec3f>(y, x);
+                
+                // Apply 3x3 matrix transformation
+                cv::Vec3f correctedPixel;
+                correctedPixel[0] = colorMatrix.at<float>(0,0) * pixel[0] + 
+                                   colorMatrix.at<float>(0,1) * pixel[1] + 
+                                   colorMatrix.at<float>(0,2) * pixel[2];
+                correctedPixel[1] = colorMatrix.at<float>(1,0) * pixel[0] + 
+                                   colorMatrix.at<float>(1,1) * pixel[1] + 
+                                   colorMatrix.at<float>(1,2) * pixel[2];
+                correctedPixel[2] = colorMatrix.at<float>(2,0) * pixel[0] + 
+                                   colorMatrix.at<float>(2,1) * pixel[1] + 
+                                   colorMatrix.at<float>(2,2) * pixel[2];
+                
+                // Clamp values to valid range [0, 255]
+                correctedPixel[0] = std::max(0.0f, std::min(255.0f, correctedPixel[0]));
+                correctedPixel[1] = std::max(0.0f, std::min(255.0f, correctedPixel[1]));
+                correctedPixel[2] = std::max(0.0f, std::min(255.0f, correctedPixel[2]));
+                
+                correctedImage.at<cv::Vec3f>(y, x) = correctedPixel;
+            }
+        }
+        
+        // Convert back to 8-bit
+        cv::Mat result;
+        correctedImage.convertTo(result, CV_8U);
+        
+        // Convert back to BGR for OpenCV display
+        cv::Mat bgrResult;
+        cv::cvtColor(result, bgrResult, cv::COLOR_RGB2BGR);
+        
+        return bgrResult;
+    }
+    
+};
 
-const char *about = "Basic chart detection";
-const char *keys =
-    "{ help h  |    | show this message }"
-    "{t        |      |  chartType: 0-Standard, 1-DigitalSG, 2-Vinyl }"
-    "{v        |      | Input from video file, if ommited, input comes from camera }"
-    "{ci       | 0    | Camera id if input doesnt come from video (-v) }"
-    "{f        | 1    | Path of the file to process (-v) }"
-    "{nc       | 1    | Maximum number of charts in the image }";
-
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
-
-
-    // ----------------------------------------------------------
-    // Scroll down a bit (~40 lines) to find actual relevant code
-    // ----------------------------------------------------------
-    //! [get_messages_of_image]
-    CommandLineParser parser(argc, argv, keys);
-    parser.about(about);
-    if (argc==1 || parser.has("help"))
-    {
-        parser.printMessage();
-        return 0;
+    // RTSP URL - can be passed as command line argument or set default
+    std::string rtspUrl = "rtsp://172.32.0.93/live/0"; // Default RTSP URL
+    
+    if (argc > 1) {
+        rtspUrl = argv[1];
     }
-
-    int t = parser.get<int>("t");
-    int nc = parser.get<int>("nc");
-    string filepath = parser.get<string>("f");
-
-    CV_Assert(0 <= t && t <= 2);
-    TYPECHART chartType = TYPECHART(t);
-
-    cout << "t: " << t << " , nc: " << nc <<  ", \nf: " << filepath << endl;
-
-    if (!parser.check())
-    {
-        parser.printErrors();
-        return 0;
+    
+    std::cout << "Connecting to RTSP stream: " << rtspUrl << std::endl;
+    
+    // Open RTSP stream
+    cv::VideoCapture cap;
+    bool streamOpened = false;
+    
+    // Try different backends for RTSP
+    std::vector<int> backends = {cv::CAP_FFMPEG, cv::CAP_GSTREAMER, cv::CAP_ANY};
+    for (int backend : backends) {
+        cap = cv::VideoCapture(rtspUrl, backend);
+        if (cap.isOpened()) {
+            std::cout << "RTSP stream opened successfully with backend " << backend << std::endl;
+            streamOpened = true;
+            break;
+        }
     }
-
-    Mat image = cv::imread(filepath, IMREAD_COLOR);
-    cout << "image: " << image.size() << endl;
-    if (!image.data)
-    {
-        cout << "Invalid Image!" << endl;
+    
+    if (!streamOpened) {
+        std::cout << "Error: Could not open RTSP stream: " << rtspUrl << std::endl;
+        std::cout << "Please check:" << std::endl;
+        std::cout << "1. RTSP URL is correct" << std::endl;
+        std::cout << "2. Network connectivity" << std::endl;
+        std::cout << "3. Camera is online and streaming" << std::endl;
         return 1;
     }
-    //! [get_messages_of_image]
+    
+    // Set stream properties
+    cap.set(cv::CAP_PROP_FRAME_WIDTH, 640);
+    cap.set(cv::CAP_PROP_FRAME_HEIGHT, 480);
+    cap.set(cv::CAP_PROP_FPS, 30);
+    
+    // Print actual stream properties
+    double actualWidth = cap.get(cv::CAP_PROP_FRAME_WIDTH);
+    double actualHeight = cap.get(cv::CAP_PROP_FRAME_HEIGHT);
+    double actualFPS = cap.get(cv::CAP_PROP_FPS);
+    
+    std::cout << "Stream properties:" << std::endl;
+    std::cout << "  Width: " << actualWidth << std::endl;
+    std::cout << "  Height: " << actualHeight << std::endl;
+    std::cout << "  FPS: " << actualFPS << std::endl;
+    
+    // Create manual CCM processor
+    ManualCCM ccmProcessor;
+    
+    cv::Mat frame;
+    int frameCount = 0;
+    
+    std::cout << "Reading frames from RTSP stream..." << std::endl;
+    
+    while (true) {
+        // Capture frame from RTSP
+        cap >> frame;
+        
+        // Check if frame is empty
+        if (frame.empty()) {
+            std::cout << "Warning: Empty frame received" << std::endl;
+            continue;
+        }
+        
+        frameCount++;
 
-    Mat imageCopy = image.clone();
-    Ptr<CCheckerDetector> detector = CCheckerDetector::create();
-    // Marker type to detect
-    if (!detector->process(image, chartType, nc))
-    {
-        printf("ChartColor not detected \n");
-        return 2;
+        // Apply manual color correction
+        cv::Mat corrected = ccmProcessor.correctColors(frame);
+
+        cv::imshow("Frame", corrected);
+        
+        // Wait for key press (essential for GUI to work)
+        char key = cv::waitKey(1);
+        if (key == 27 || key == 'q') { // ESC or 'q' to quit
+            break;
+        }
     }
-    //! [get_color_checker]
-    vector<Ptr<mcc::CChecker>> checkers = detector->getListColorChecker();
-    //! [get_color_checker]
-    for (Ptr<mcc::CChecker> checker : checkers)
-    {
-        //! [create]
-        Ptr<CCheckerDraw> cdraw = CCheckerDraw::create(checker);
-        cdraw->draw(image);
-        Mat chartsRGB = checker->getChartsRGB();
-        Mat src = chartsRGB.col(1).clone().reshape(3, chartsRGB.rows/3);
-        src /= 255.0;
-        //! [create]
-
-        //compte color correction matrix
-        //! [get_ccm_Matrix]
-        ColorCorrectionModel model1(src, COLORCHECKER_Vinyl);
-        model1.run();
-        Mat ccm = model1.getCCM();
-        std::cout<<"ccm "<<ccm<<std::endl;
-        double loss = model1.getLoss();
-        std::cout<<"loss "<<loss<<std::endl;
-        //! [get_ccm_Matrix]
-         /* brief More models with different parameters, try it & check the document for details.
-        */
-        // model1.setColorSpace(COLOR_SPACE_sRGB);
-        // model1.setCCM_TYPE(CCM_3x3);
-        // model1.setDistance(DISTANCE_CIE2000);
-        // model1.setLinear(LINEARIZATION_GAMMA);
-        // model1.setLinearGamma(2.2);
-        // model1.setLinearDegree(3);
-        // model1.setSaturatedThreshold(0, 0.98);
-
-        /* If you use a customized ColorChecker, you can use your own reference color values and corresponding color space in a way like:
-        */
-        //! [reference_color_values]
-        // cv::Mat ref = (Mat_<Vec3d>(18, 1) <<
-        // Vec3d(100, 0.00520000001, -0.0104),
-        // Vec3d(73.0833969, -0.819999993, -2.02099991),
-        // Vec3d(62.493, 0.425999999, -2.23099995),
-        // Vec3d(50.4640007, 0.446999997, -2.32399988),
-        // Vec3d(37.7970009, 0.0359999985, -1.29700005),
-        // Vec3d(0, 0, 0),
-        // Vec3d(51.5880013, 73.5179977, 51.5690002),
-        // Vec3d(93.6989975, -15.7340002, 91.9420013),
-        // Vec3d(69.4079971, -46.5940018, 50.4869995),
-        // Vec3d(66.61000060000001, -13.6789999, -43.1720009),
-        // Vec3d(11.7110004, 16.9799995, -37.1759987),
-        // Vec3d(51.973999, 81.9440002, -8.40699959),
-        // Vec3d(40.5489998, 50.4399986, 24.8490009),
-        // Vec3d(60.8160019, 26.0690002, 49.4420013),
-        // Vec3d(52.2529984, -19.9500008, -23.9960003),
-        // Vec3d(51.2859993, 48.4700012, -15.0579996),
-        // Vec3d(68.70700069999999, 12.2959995, 16.2129993),
-        // Vec3d(63.6839981, 10.2930002, 16.7639999));
-
-        // ColorCorrectionModel model8(src,ref,COLOR_SPACE_Lab_D50_2);
-        // model8.run();
-        //! [reference_color_values]
-
-        //! [make_color_correction]
-        Mat img_;
-        cvtColor(image, img_, COLOR_BGR2RGB);
-        img_.convertTo(img_, CV_64F);
-        const int inp_size = 255;
-        const int out_size = 255;
-        img_ = img_ / inp_size;
-        Mat calibratedImage= model1.infer(img_);
-        Mat out_ = calibratedImage * out_size;
-        //! [make_color_correction]
-
-        //! [Save_calibrated_image]
-        // Save the calibrated image to {FILE_NAME}.calibrated.{FILE_EXT}
-        out_.convertTo(out_, CV_8UC3);
-        Mat img_out = min(max(out_, 0), out_size);
-        Mat out_img;
-        cvtColor(img_out, out_img, COLOR_RGB2BGR);
-        string filename = filepath.substr(filepath.find_last_of('/')+1);
-        size_t dotIndex = filename.find_last_of('.');
-        string baseName = filename.substr(0, dotIndex);
-        string ext = filename.substr(dotIndex+1, filename.length()-dotIndex);
-        string calibratedFilePath = baseName + ".calibrated." + ext;
-        imwrite(calibratedFilePath, out_img);
-        //! [Save_calibrated_image]
-
-    }
-
+    
+    // Clean up
+    cap.release();
+    cv::destroyAllWindows();
+    
+    std::cout << "RTSP session ended. Processed " << frameCount << " frames." << std::endl;
     return 0;
 }
-//! [tutorial]
